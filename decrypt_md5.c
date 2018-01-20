@@ -195,7 +195,6 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // !!!!! = 952bccf9afe8e4c04306f70f7bed6610
 // !@!!! = 9eed591efa53e93c1c7b172733786ff7
 // !!!@! = c5800ffa9e056207ae1f26a993c4e06e
-// fodase = 3027b1eb85eeffea124f102a062dc64e
 // FeRi@s = 369349d4f440d4e139b3204121588d39
 
 #define PRIMEIRO_CARACTER   0x21
@@ -203,14 +202,14 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 #define NUMERO_DE_THREADS   1
 #define TAMANHO_PALAVRA     4
 
-int compararHashes (const uint32_t a[], const uint32_t b[]) {
+int comparar_hashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t* stringTeste, int lengthPalavraAtual) {
+int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, byte_t* stringTeste, int lengthPalavraAtual) {
 
     static md5_t MD5;
-    static uint32_t check[4];
+    static uint32_t hashGerada[4];
     
     byte_t c;
 
@@ -218,7 +217,7 @@ int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t
         for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
             stringTeste[lengthPalavraAtual] = c;
 
-            if (quebrar_hash_tamanho_fixo(hash, resultado, stringTeste, lengthPalavraAtual + 1)) 
+            if (forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1)) 
                 return 1;
         }
     } else {
@@ -227,23 +226,14 @@ int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t
             
             md5_init(&MD5);
             md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
-            md5_hash(&MD5, check);
+            md5_hash(&MD5, hashGerada);
 
-            if (compararHashes(hash, check)) {
+            if (comparar_hashes(hashOriginal, hashGerada)) {
                 strcpy(resultado, stringTeste);
                 return 1;
             }
         }
     }
-
-    return 0;
-}
-
-int quebrar_hash_md5 (const uint32_t hash[4], byte_t* resultado) {
-    
-    byte_t str[ TAMANHO_PALAVRA + 1 ];
-
-    if (quebrar_hash_tamanho_fixo (hash, resultado, str, 0)) return 1;
 
     return 0;
 }
@@ -255,7 +245,8 @@ int quebrar_hash_md5 (const uint32_t hash[4], byte_t* resultado) {
 
 int main (){
 
-    uint32_t hash[4];
+    byte_t str[ TAMANHO_PALAVRA + 1 ];
+    uint32_t hashOriginal[4];
     char hexstring[33] = {0};
     char resultado[11];
     int tId;
@@ -267,7 +258,7 @@ int main (){
     fgets(hexstring, 33, stdin);
     
     for (int i = 0; i < 4; i++) 
-        sscanf(&hexstring[i * 8], "%8x", &hash[i]);
+        sscanf(&hexstring[i * 8], "%8x", &hashOriginal[i]);
 
     printf("\n===================================\n");
     printf("Número de threads: %d\n", NUMERO_DE_THREADS);
@@ -280,7 +271,7 @@ int main (){
         tId = omp_get_thread_num() + 1;
         printf("Thread número %d rodando...\n", tId);
 
-        quebrar_hash_md5(hash, resultado);
+        forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
     }
 
     printf("\n===================================\n");
