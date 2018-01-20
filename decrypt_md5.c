@@ -214,38 +214,53 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // Métodos Comparativos
 // *******************************
 
+// HASHES
+// 
+// @T$1 = 24b91372fa71abbdf7f69b88834cfaa7
+// ! = 9033e0e305f247c0c3c80d0c7848c8b3
+// @ = 518ed29525738cebdac49c49e60ea9d3
+// @1 = 68986ab776eb5d6b5a809a1c005a7300
+// aaaa = 74b87337454200d4d33f80c4663dc5e5
+// !!!! = 98abe3a28383501f4bfd2d9077820f11
+// !!!!! = 952bccf9afe8e4c04306f70f7bed6610
+// !@!!! = 9eed591efa53e93c1c7b172733786ff7
+// !!!@! = c5800ffa9e056207ae1f26a993c4e06e
+// fodase = 3027b1eb85eeffea124f102a062dc64e
+// FeRi@s = 369349d4f440d4e139b3204121588d39
+
 #define PRIMEIRO_CARACTER   0x21
 #define ULTIMO_CARACTER     0x7a
-#define NUMERO_DE_THREADS 4
-#define TAMANHO_MAXIMO 7
+#define NUMERO_DE_THREADS   1
+#define TAMANHO_PALAVRA     4
 
-int compare (const uint32_t a[], const uint32_t b[]) {
+int compararHashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t* test, int p, int len) {
+int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t* stringTeste, int lengthPalavraAtual) {
 
     static md5_t MD5;
     static uint32_t check[4];
     
     byte_t c;
 
-    if (p < len-1) {
+    if (lengthPalavraAtual < TAMANHO_PALAVRA - 1) {
         for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
-            test[p] = c;
-            if (quebrar_hash_tamanho_fixo(hash, resultado, test, p + 1, len)) 
+            stringTeste[lengthPalavraAtual] = c;
+
+            if (quebrar_hash_tamanho_fixo(hash, resultado, stringTeste, lengthPalavraAtual + 1)) 
                 return 1;
         }
     } else {
         for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
-            test[p] = c;
-
+            stringTeste[lengthPalavraAtual] = c;
+            
             md5_init(&MD5);
-            md5_update(&MD5, test, len);
+            md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
             md5_hash(&MD5, check);
 
-            if (compare(hash, check)) {
-                strcpy(resultado, test);
+            if (compararHashes(hash, check)) {
+                strcpy(resultado, stringTeste);
                 return 1;
             }
         }
@@ -256,10 +271,9 @@ int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t
 
 int quebrar_hash_md5 (const uint32_t hash[4], byte_t* resultado) {
     
-    byte_t str[TAMANHO_MAXIMO+1];
+    byte_t str[ TAMANHO_PALAVRA + 1 ];
 
-    for (int i = 0; i < TAMANHO_MAXIMO; i++)
-        if (quebrar_hash_tamanho_fixo (hash, resultado, str, 0, i)) return 1;
+    if (quebrar_hash_tamanho_fixo (hash, resultado, str, 0)) return 1;
 
     return 0;
 }
@@ -287,7 +301,8 @@ int main (){
 
     printf("\n===================================\n");
     printf("Número de threads: %d\n", NUMERO_DE_THREADS);
-     printf("===================================\n");
+    printf("Número de letras: %d\n", TAMANHO_PALAVRA);
+    printf("===================================\n");
 
     omp_set_num_threads(NUMERO_DE_THREADS);
     #pragma omp parallel private(tId)
@@ -297,19 +312,6 @@ int main (){
 
         quebrar_hash_md5(hash, resultado);
     }
-
-    // printf("Quebrando hash: %08x%08x%08x%08x...\n", hash[0], hash[1], hash[2], hash[3]);
-    // quebrar_hash_md5(hash, resultado);
-
-    // HASHES
-    // 
-    // @T$1 = 24b91372fa71abbdf7f69b88834cfaa7
-    // ! = 9033e0e305f247c0c3c80d0c7848c8b3
-    // !!!! = 98abe3a28383501f4bfd2d9077820f11
-    // aaaa = 74b87337454200d4d33f80c4663dc5e5
-    // fodase = 3027b1eb85eeffea124f102a062dc64e
-    // FeRi@s = 369349d4f440d4e139b3204121588d39
-
 
     printf("\n===================================\n");
     printf("Texto original:   \n%s\n", resultado);
