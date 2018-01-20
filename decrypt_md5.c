@@ -6,13 +6,24 @@
 // **********************************************
 // **********************************************
 // 
-// Programa utilizado para quebrar uma hash md5
+// Programa utilizado para quebrar uma hash md5 por força bruta.
+// A hash de exemplo é 24b91372fa71abbdf7f69b88834cfaa7. 
+// O resultado dessa é o texto "@T$1".
 // 
 // Para compilar basta rodar o comando:
-// $ gcc -fopenmp decrypt_md5.c -o nomeDaSaida
-// $ gcc -fopenmp decrypt_md5.c -o teste  -I /usr/local/opt/openssl/include -L /usr/local/opt/openssl/lib
-// $ gcc main.c -o teste  -I /usr/local/opt/openssl/
-// $ gcc -fopenmp main.c -o teste  -I /usr/local/opt/openssl/ -L /usr/local/opt/openssl/lib
+// $ gcc -fopenmp decrypt_md5.c -o decrypt_md5.o -I /usr/local/opt/openssl/
+// 
+// 
+// Ou basta rodar os comandos do arquivo Makefile 
+// 
+// Para compilar:
+// $ make compile
+// 
+// Para rodar:
+// $ make run
+// 
+// Para limpar o projeto:
+// $ make clean
 // 
 // **********************************************
 // **********************************************
@@ -22,7 +33,7 @@
 #include <string.h>
 #include <omp.h>
 #include "md5.h"
- 
+
 // *******************************
 // Funções de tempo
 // *******************************
@@ -203,14 +214,16 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // Métodos Comparativos
 // *******************************
 
-#define START   0x21
-#define END     0x7a
+#define PRIMEIRO_CARACTER   0x21
+#define ULTIMO_CARACTER     0x7a
+#define NUMERO_DE_THREADS 4
+#define TAMANHO_MAXIMO 7
 
 int compare (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-int brute_force_fixed_length (const uint32_t hash[4], byte_t* result, byte_t* test, int p, int len) {
+int quebrar_hash_tamanho_fixo (const uint32_t hash[4], byte_t* resultado, byte_t* test, int p, int len) {
 
     static md5_t MD5;
     static uint32_t check[4];
@@ -218,13 +231,13 @@ int brute_force_fixed_length (const uint32_t hash[4], byte_t* result, byte_t* te
     byte_t c;
 
     if (p < len-1) {
-        for (c = START; c <= END; ++c) {
+        for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
             test[p] = c;
-            if (brute_force_fixed_length(hash, result, test, p + 1, len)) 
+            if (quebrar_hash_tamanho_fixo(hash, resultado, test, p + 1, len)) 
                 return 1;
         }
     } else {
-        for (c = START; c <= END; ++c) {
+        for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
             test[p] = c;
 
             md5_init(&MD5);
@@ -232,7 +245,7 @@ int brute_force_fixed_length (const uint32_t hash[4], byte_t* result, byte_t* te
             md5_hash(&MD5, check);
 
             if (compare(hash, check)) {
-                strcpy(result, test);
+                strcpy(resultado, test);
                 return 1;
             }
         }
@@ -241,53 +254,65 @@ int brute_force_fixed_length (const uint32_t hash[4], byte_t* result, byte_t* te
     return 0;
 }
 
-int brute_force (const uint32_t hash[4], byte_t* result, int maxlen) {
+int quebrar_hash_md5 (const uint32_t hash[4], byte_t* resultado) {
     
-    byte_t str[maxlen+1];
+    byte_t str[TAMANHO_MAXIMO+1];
 
-    for (int i = 0; i < maxlen; i++)
-        if (brute_force_fixed_length (hash, result, str, 0, i)) return 1;
+    for (int i = 0; i < TAMANHO_MAXIMO; i++)
+        if (quebrar_hash_tamanho_fixo (hash, resultado, str, 0, i)) return 1;
 
     return 0;
 }
+
 
 // *******************************
 // Main
 // *******************************
 
 int main (){
-    // Iniciar contagem de tempo
-	time_log_start();
 
     uint32_t hash[4];
     char hexstring[33] = {0};
-    char result[11];
-	int nThreads, tId;
+    char resultado[11];
+    int tId;
+
+    // Iniciar contagem de tempo
+	time_log_start();
 
     printf("Informe a hash a ser quebrada:  ");
     fgets(hexstring, 33, stdin);
-    for (int i = 0; i < 4; i++) sscanf(&hexstring[i * 8], "%8x", &hash[i]);
+    
+    for (int i = 0; i < 4; i++) 
+        sscanf(&hexstring[i * 8], "%8x", &hash[i]);
 
+    printf("\n===================================\n");
+    printf("Número de threads: %d\n", NUMERO_DE_THREADS);
+     printf("===================================\n");
 
-    // // omp_set_num_threads();
+    omp_set_num_threads(NUMERO_DE_THREADS);
     #pragma omp parallel private(tId)
     {
-        tId = omp_get_thread_num();
-        printf("Thread número %d\n", tId);
+        tId = omp_get_thread_num() + 1;
+        printf("Thread número %d rodando...\n", tId);
 
-        if(tId == 0){
-            nThreads = omp_get_num_threads();
-            printf("Total de threads: %d\n", nThreads);
-        }
+        quebrar_hash_md5(hash, resultado);
     }
 
     // printf("Quebrando hash: %08x%08x%08x%08x...\n", hash[0], hash[1], hash[2], hash[3]);
-    printf("Quebrando hash...\n");
-    
-    brute_force(hash, result, 10);
+    // quebrar_hash_md5(hash, resultado);
+
+    // HASHES
+    // 
+    // @T$1 = 24b91372fa71abbdf7f69b88834cfaa7
+    // ! = 9033e0e305f247c0c3c80d0c7848c8b3
+    // !!!! = 98abe3a28383501f4bfd2d9077820f11
+    // aaaa = 74b87337454200d4d33f80c4663dc5e5
+    // fodase = 3027b1eb85eeffea124f102a062dc64e
+    // FeRi@s = 369349d4f440d4e139b3204121588d39
+
 
     printf("\n===================================\n");
-    printf("Texto original:   \n%s\n", result);
+    printf("Texto original:   \n%s\n", resultado);
     printf("===================================\n");
 
     // Mostrar tempo de execução
@@ -296,9 +321,5 @@ int main (){
 	time_log_stop();
     printf("===================================\n");
 
-	// system("pause");
 	return 0;
 }
-
-// 24b91372fa71abbdf7f69b88834cfaa7
-// @T$1
