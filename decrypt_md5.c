@@ -1,33 +1,3 @@
-// **********************************************
-//
-//              Desenvolvido por 
-//        Paulo Caetano Virote de Souza
-//
-// **********************************************
-// **********************************************
-// 
-// Programa utilizado para quebrar uma hash md5 por força bruta.
-// A hash de exemplo é 24b91372fa71abbdf7f69b88834cfaa7. 
-// O resultado dessa é o texto "@T$1".
-// 
-// Para compilar basta rodar o comando:
-// $ gcc -fopenmp decrypt_md5.c -o decrypt_md5.o -I /usr/local/opt/openssl/
-// 
-// 
-// Ou basta rodar os comandos do arquivo Makefile 
-// 
-// Para compilar:
-// $ make compile
-// 
-// Para rodar:
-// $ make run
-// 
-// Para limpar o projeto:
-// $ make clean
-// 
-// **********************************************
-// **********************************************
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
