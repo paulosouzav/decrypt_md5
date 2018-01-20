@@ -199,10 +199,10 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // !!!@!  =  c5800ffa9e056207ae1f26a993c4e06e
 // FeRi@s =  369349d4f440d4e139b3204121588d39
 
-#define PRIMEIRO_CARACTERE   0x21
-#define ULTIMO_CARACTERE     0x7a
-#define NUMERO_DE_THREADS    32
-#define TAMANHO_PALAVRA      3
+#define PRIMEIRO_CARACTER   0x21
+#define ULTIMO_CARACTER     0x7a
+#define NUMERO_DE_THREADS   2
+#define TAMANHO_PALAVRA     3
 
 int comparar_hashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
@@ -216,14 +216,15 @@ int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, b
     byte_t c;
 
     if (lengthPalavraAtual < TAMANHO_PALAVRA - 1) {
-        for (c = PRIMEIRO_CARACTERE; c <= ULTIMO_CARACTERE; ++c) {
+        #pragma omp parallel for private(c)
+        for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
             stringTeste[lengthPalavraAtual] = c;
 
             if (forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1)) 
                 return 1;
         }
     } else {
-        for (c = PRIMEIRO_CARACTERE; c <= ULTIMO_CARACTERE; ++c) {
+        for (c = PRIMEIRO_CARACTER; c <= ULTIMO_CARACTER; ++c) {
             stringTeste[lengthPalavraAtual] = c;
             
             md5_init(&MD5);
