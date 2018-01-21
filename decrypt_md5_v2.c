@@ -186,23 +186,36 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 
 // HASHES
 // 
-// @T$1   =  24b91372fa71abbdf7f69b88834cfaa7
-// !      =  9033e0e305f247c0c3c80d0c7848c8b3
-// @      =  518ed29525738cebdac49c49e60ea9d3
-// @1     =  68986ab776eb5d6b5a809a1c005a7300
-// zz     =  25ed1bcb423b0b7200f485fc5ff71c8e
-// zzz    =  f3abb86bd34cf4d52698f14c0da1dc60
-// aaaa   =  74b87337454200d4d33f80c4663dc5e5
-// !!!!   =  98abe3a28383501f4bfd2d9077820f11
-// !!!!!  =  952bccf9afe8e4c04306f70f7bed6610
-// !@!!!  =  9eed591efa53e93c1c7b172733786ff7
-// !!!@!  =  c5800ffa9e056207ae1f26a993c4e06e
-// FeRi@s =  369349d4f440d4e139b3204121588d39
+// @T$1    =  24b91372fa71abbdf7f69b88834cfaa7
+// !       =  9033e0e305f247c0c3c80d0c7848c8b3
+// @       =  518ed29525738cebdac49c49e60ea9d3
+// @1      =  68986ab776eb5d6b5a809a1c005a7300
+// zz      =  25ed1bcb423b0b7200f485fc5ff71c8e
+// zzz     =  f3abb86bd34cf4d52698f14c0da1dc60
+// aaaa    =  74b87337454200d4d33f80c4663dc5e5
+// xxxx    =  ea416ed0759d46a8de58f63a59077499
+// !!!!    =  98abe3a28383501f4bfd2d9077820f11
+// !!!!!   =  952bccf9afe8e4c04306f70f7bed6610
+// !@!!!   =  9eed591efa53e93c1c7b172733786ff7
+// !!!@!   =  c5800ffa9e056207ae1f26a993c4e06e
+// FeRi@s  =  369349d4f440d4e139b3204121588d39
+// 1W0rd!@ =  6ca812d547a65f36c7f9b52e85cabd3d
+// !!!!!!! =  85833abc49f38e7bb1042b14d64a22cf
 
-#define PRIMEIRO_CARACTERE   0x21
-#define ULTIMO_CARACTERE     0x7a
-#define NUMERO_DE_THREADS    32
-#define TAMANHO_PALAVRA      3
+#define NUMERO_DE_THREADS    1
+#define TAMANHO_PALAVRA      7
+#define TOTAL_CARACTERES     70
+
+const byte_t ARRAY_CARACTERES[] = { 
+                                    0x21, 0x23, 0x24, 0x25, 0x2b, 0x3d, 0x3f, 0x40, 0x79, 0x7a,  // ! # $ % + = ? @ y z
+                                    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,  // 0 1 2 3 4 5 6 7 8 9
+                                    0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0X4a,  // A B C D E F G H I J
+                                    0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52, 0x53, 0X54,  // K L M N O P Q R S T
+                                    0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x61, 0x62, 0x63, 0X64,  // U V W X Y Z a b c d
+                                    0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0X6e,  // e f g h i j k l m n
+                                    0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0X78   // o p q r s t u v w x
+                                  };
+
 
 int comparar_hashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
@@ -212,19 +225,17 @@ int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, b
 
     static md5_t MD5;
     static uint32_t hashGerada[4];
-    
-    byte_t c;
 
     if (lengthPalavraAtual < TAMANHO_PALAVRA - 1) {
-        for (c = PRIMEIRO_CARACTERE; c <= ULTIMO_CARACTERE; ++c) {
-            stringTeste[lengthPalavraAtual] = c;
+        for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
+            stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
 
             if (forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1)) 
                 return 1;
         }
     } else {
-        for (c = PRIMEIRO_CARACTERE; c <= ULTIMO_CARACTERE; ++c) {
-            stringTeste[lengthPalavraAtual] = c;
+        for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
+            stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
             
             md5_init(&MD5);
             md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
@@ -236,7 +247,7 @@ int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, b
             }
         }
     }
-
+    
     return 0;
 }
 
@@ -253,9 +264,6 @@ int main (){
     char resultado[11];
     int tId;
 
-    // Iniciar contagem de tempo
-	time_log_start();
-
     printf("Informe a hash a ser quebrada:  ");
     fgets(hexstring, 33, stdin);
     
@@ -266,6 +274,9 @@ int main (){
     printf("Número de threads: %d\n", NUMERO_DE_THREADS);
     printf("Número de letras: %d\n", TAMANHO_PALAVRA);
     printf("===================================\n");
+
+    // Iniciar contagem de tempo
+	time_log_start();
 
     omp_set_num_threads(NUMERO_DE_THREADS);
     #pragma omp parallel private(tId)
