@@ -1,4 +1,4 @@
-GCC = gcc-7
+GCC = gcc
 TARGET = decrypt_md5
 LINKS = -fopenmp
 OPENSSL = -I /usr/local/opt/openssl/
