@@ -201,8 +201,13 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // 1W0rd!@ =  6ca812d547a65f36c7f9b52e85cabd3d
 // !!!!!!! =  85833abc49f38e7bb1042b14d64a22cf
 
+// Para a entrega:
+// T$i     =  6b4a1e0b6612fd53a2b85922c5d5bd12
+// #R%f    =  26757bfdf2c738b0aeb3d634e677a482
+// =@pD?   =  d63f657df132357091c5b51031bba8bf
+
 #define NUMERO_DE_THREADS    1
-#define TAMANHO_PALAVRA      7
+#define TAMANHO_PALAVRA      5
 #define TOTAL_CARACTERES     70
 
 const byte_t ARRAY_CARACTERES[] = { 

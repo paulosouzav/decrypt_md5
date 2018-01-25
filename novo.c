@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
-#include <stdbool.h>
 #include "md5.h"
 
 // *******************************
@@ -207,8 +206,8 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // #R%f    =  26757bfdf2c738b0aeb3d634e677a482
 // =@pD?   =  d63f657df132357091c5b51031bba8bf
 
-#define NUMERO_DE_THREADS    8
-#define TAMANHO_PALAVRA      5
+#define NUMERO_DE_THREADS    1
+#define TAMANHO_PALAVRA      4
 #define TOTAL_CARACTERES     70
 
 const byte_t ARRAY_CARACTERES[] = { 
@@ -225,74 +224,42 @@ int comparar_hashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado) {
+int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, byte_t* stringTeste, int lengthPalavraAtual) {
 
     static md5_t MD5;
     static uint32_t hashGerada[4];
-    byte_t str[ TAMANHO_PALAVRA + 1 ];
 
-    bool stop = false;
-    omp_set_num_threads(NUMERO_DE_THREADS);
-    #pragma omp parallel private(str, MD5, hashGerada)
-    {
-        #pragma omp for
-        for (int i = 0; i < TOTAL_CARACTERES; i++)
+    if(lengthPalavraAtual == TAMANHO_PALAVRA -1 ){
+
+        for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
+            stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
+            
+            md5_init(&MD5);
+            md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
+            md5_hash(&MD5, hashGerada);
+
+            if (comparar_hashes(hashOriginal, hashGerada)) {
+                strcpy(resultado, stringTeste);
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+    else {
+
+        omp_set_num_threads(NUMERO_DE_THREADS);
+        #pragma omp parallel
         {
-            str[0] = ARRAY_CARACTERES[i];
-            for (int j = 0; j < TOTAL_CARACTERES; j++)
-            {
-                str[1] = ARRAY_CARACTERES[j];
-                for (int k = 0; k < TOTAL_CARACTERES; k++)
-                {
-                    str[2] = ARRAY_CARACTERES[k];
-                    for (int l = 0; l < TOTAL_CARACTERES; l++)
-                    {
-                        str[3] = ARRAY_CARACTERES[l];
-                        for (int m = 0; m < TOTAL_CARACTERES; m++)
-                        {
-                            str[4] = ARRAY_CARACTERES[m];
-                            md5_init(&MD5);
-                            md5_update(&MD5, str, TAMANHO_PALAVRA);
-                            md5_hash(&MD5, hashGerada);
-
-                            if (comparar_hashes(hashOriginal, hashGerada)) {
-                                strcpy(resultado, str);
-                            }
-
-                        }
-                    }
-                }
+            #pragma omp for
+            for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
+                stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
+                forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1);
             }
         }
     }
-    return 1;
 
-
-    
-
-    // if(lengthPalavraAtual == TAMANHO_PALAVRA){
-    //     md5_init(&MD5);
-    //     md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
-    //     md5_hash(&MD5, hashGerada);
-
-    //     if (comparar_hashes(hashOriginal, hashGerada)) {
-    //         strcpy(resultado, stringTeste);
-    //         return 1;
-    //     }
-    // }
-    // else {
-    //     omp_set_num_threads(NUMERO_DE_THREADS);
-    //     #pragma omp parallel
-    //     {
-    //         #pragma omp for
-    //         for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
-    //             stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
-    //             forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1);
-    //         }
-    //     }
-    // }
-
-    // return 0;
+    return 0;
 }
 
 
@@ -322,7 +289,7 @@ int main (){
     // Iniciar contagem de tempo
 	time_log_start();
 
-    forcar_quebra_hash_MD5 (hashOriginal, resultado);
+    forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
 
     printf("\n===================================\n");
     printf("Texto original:   \n%s\n", resultado);
@@ -333,6 +300,6 @@ int main (){
     printf("Tempo de Execução:\n");
 	time_log_stop();
     printf("===================================\n");
-	// return 0;
-    exit(0);
+
+	return 0;
 }
