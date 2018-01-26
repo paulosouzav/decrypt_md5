@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
-#include <stdbool.h>
 #include "md5.h"
 
 // *******************************
@@ -198,6 +197,7 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // !!!!!   =  952bccf9afe8e4c04306f70f7bed6610
 // !@!!!   =  9eed591efa53e93c1c7b172733786ff7
 // !!!@!   =  c5800ffa9e056207ae1f26a993c4e06e
+// 1W0rd   =  f2dbb73795afcbcb56eaca0db8d765b2
 // FeRi@s  =  369349d4f440d4e139b3204121588d39
 // 1W0rd!@ =  6ca812d547a65f36c7f9b52e85cabd3d
 // !!!!!!! =  85833abc49f38e7bb1042b14d64a22cf
@@ -207,7 +207,7 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // #R%f    =  26757bfdf2c738b0aeb3d634e677a482
 // =@pD?   =  d63f657df132357091c5b51031bba8bf
 
-#define NUMERO_DE_THREADS    8
+#define NUMERO_DE_THREADS    4
 #define TAMANHO_PALAVRA      5
 #define TOTAL_CARACTERES     70
 
@@ -225,74 +225,31 @@ int comparar_hashes (const uint32_t a[], const uint32_t b[]) {
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado) {
+int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], uint32_t hashGerada[4], md5_t MD5, byte_t* resultado, byte_t* stringTeste, int lengthPalavraAtual) {
 
-    static md5_t MD5;
-    static uint32_t hashGerada[4];
-    byte_t str[ TAMANHO_PALAVRA + 1 ];
+    if (lengthPalavraAtual < TAMANHO_PALAVRA - 1) {
+        for (int i = 0; i < TOTAL_CARACTERES; ++i) {
+            stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
 
-    bool stop = false;
-    omp_set_num_threads(NUMERO_DE_THREADS);
-    #pragma omp parallel private(str, MD5, hashGerada)
-    {
-        #pragma omp for
-        for (int i = 0; i < TOTAL_CARACTERES; i++)
-        {
-            str[0] = ARRAY_CARACTERES[i];
-            for (int j = 0; j < TOTAL_CARACTERES; j++)
-            {
-                str[1] = ARRAY_CARACTERES[j];
-                for (int k = 0; k < TOTAL_CARACTERES; k++)
-                {
-                    str[2] = ARRAY_CARACTERES[k];
-                    for (int l = 0; l < TOTAL_CARACTERES; l++)
-                    {
-                        str[3] = ARRAY_CARACTERES[l];
-                        for (int m = 0; m < TOTAL_CARACTERES; m++)
-                        {
-                            str[4] = ARRAY_CARACTERES[m];
-                            md5_init(&MD5);
-                            md5_update(&MD5, str, TAMANHO_PALAVRA);
-                            md5_hash(&MD5, hashGerada);
+            if (forcar_quebra_hash_MD5(hashOriginal, hashGerada, MD5, resultado, stringTeste, lengthPalavraAtual + 1))
+                return 1;
+        }
+    } else {
+        for (int i = 0; i < TOTAL_CARACTERES; ++i) {
+            stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
+            
+            md5_init(&MD5);
+            md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
+            md5_hash(&MD5, hashGerada);
 
-                            if (comparar_hashes(hashOriginal, hashGerada)) {
-                                strcpy(resultado, str);
-                            }
-
-                        }
-                    }
-                }
+            if (comparar_hashes(hashOriginal, hashGerada)) {
+                strcpy(resultado, stringTeste);
+                return 1;
             }
         }
     }
-    return 1;
 
-
-    
-
-    // if(lengthPalavraAtual == TAMANHO_PALAVRA){
-    //     md5_init(&MD5);
-    //     md5_update(&MD5, stringTeste, TAMANHO_PALAVRA);
-    //     md5_hash(&MD5, hashGerada);
-
-    //     if (comparar_hashes(hashOriginal, hashGerada)) {
-    //         strcpy(resultado, stringTeste);
-    //         return 1;
-    //     }
-    // }
-    // else {
-    //     omp_set_num_threads(NUMERO_DE_THREADS);
-    //     #pragma omp parallel
-    //     {
-    //         #pragma omp for
-    //         for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
-    //             stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
-    //             forcar_quebra_hash_MD5(hashOriginal, resultado, stringTeste, lengthPalavraAtual + 1);
-    //         }
-    //     }
-    // }
-
-    // return 0;
+    return 0;
 }
 
 
@@ -304,9 +261,14 @@ int main (){
 
     byte_t str[ TAMANHO_PALAVRA + 1 ];
     uint32_t hashOriginal[4];
+    uint32_t hashGerada[4];
+    md5_t MD5;
     char hexstring[33] = {0};
-    char resultado[11];
+    char resultado[TAMANHO_PALAVRA];
     int tId;
+
+    // Limpar vetor resultado
+    memset(resultado, '\0', TAMANHO_PALAVRA);
 
     printf("Informe a hash a ser quebrada:  ");
     fgets(hexstring, 33, stdin);
@@ -322,7 +284,23 @@ int main (){
     // Iniciar contagem de tempo
 	time_log_start();
 
-    forcar_quebra_hash_MD5 (hashOriginal, resultado);
+    static int encontrado = 0;
+    omp_set_num_threads(NUMERO_DE_THREADS);
+    #pragma omp parallel private(tId, str, hashGerada, MD5) shared(hashOriginal, encontrado)
+    {
+        tId = omp_get_thread_num() + 1;
+        printf("Thread número %d rodando...\n", tId);
+
+        #pragma omp for schedule(dynamic)
+        for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
+            if(encontrado == 0){
+                str[0] = ARRAY_CARACTERES[i];
+                encontrado = forcar_quebra_hash_MD5 (hashOriginal, hashGerada, MD5, resultado, str, 1);
+            }
+        }
+    }
+
+    // forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
 
     printf("\n===================================\n");
     printf("Texto original:   \n%s\n", resultado);
@@ -333,6 +311,6 @@ int main (){
     printf("Tempo de Execução:\n");
 	time_log_stop();
     printf("===================================\n");
-	// return 0;
-    exit(0);
+
+	return 0;
 }

@@ -207,8 +207,7 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // #R%f    =  26757bfdf2c738b0aeb3d634e677a482
 // =@pD?   =  d63f657df132357091c5b51031bba8bf
 
-#define NUMERO_DE_THREADS    1
-#define TAMANHO_PALAVRA      5
+#define TAMANHO_PALAVRA      4
 #define TOTAL_CARACTERES     70
 
 const byte_t ARRAY_CARACTERES[] = { 
@@ -231,7 +230,6 @@ int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, b
     static uint32_t hashGerada[4];
 
     if (lengthPalavraAtual < TAMANHO_PALAVRA - 1) {
-        // #pragma omp for
         for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
             stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
 
@@ -239,7 +237,6 @@ int forcar_quebra_hash_MD5 (const uint32_t hashOriginal[4], byte_t* resultado, b
                 return 1;
         }
     } else {
-        // #pragma omp for
         for (int i = 0; i <= TOTAL_CARACTERES; ++i) {
             stringTeste[lengthPalavraAtual] = ARRAY_CARACTERES[i];
             
@@ -277,21 +274,13 @@ int main (){
         sscanf(&hexstring[i * 8], "%8x", &hashOriginal[i]);
 
     printf("\n===================================\n");
-    printf("Número de threads: %d\n", NUMERO_DE_THREADS);
     printf("Número de letras: %d\n", TAMANHO_PALAVRA);
     printf("===================================\n");
 
     // Iniciar contagem de tempo
 	time_log_start();
 
-    omp_set_num_threads(NUMERO_DE_THREADS);
-    #pragma omp parallel private(tId)
-    {
-        tId = omp_get_thread_num() + 1;
-        printf("Thread número %d rodando...\n", tId);
-
-        forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
-    }
+    forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
 
     printf("\n===================================\n");
     printf("Texto original:   \n%s\n", resultado);
