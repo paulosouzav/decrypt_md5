@@ -3,10 +3,10 @@ TARGET = decrypt_md5
 LINKS = -fopenmp
 OPENSSL = -I /usr/local/opt/openssl/
 
-compile: $(TARGET).c
+compile: $(TARGET)_sequential.c
 	$(GCC) $(LINKS) $< -o $(TARGET).o $(OPENSSL)
 
-compileV2: $(TARGET)_v2.c
+compile_parallel: $(TARGET)_parallel.c
 	$(GCC) $(LINKS) $< -o $(TARGET).o $(OPENSSL)
 
 run:
