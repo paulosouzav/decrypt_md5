@@ -184,7 +184,7 @@ void md5_hash (md5_t* self, uint32_t hash[4]) {
 // Métodos Comparativos
 // *******************************
 
-#define TAMANHO_PALAVRA      4
+#define TAMANHO_PALAVRA      5
 #define TOTAL_CARACTERES     70
 
 const byte_t ARRAY_CARACTERES[] = { 
