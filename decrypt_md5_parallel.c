@@ -276,8 +276,6 @@ int main (){
         }
     }
 
-    // forcar_quebra_hash_MD5 (hashOriginal, resultado, str, 0);
-
     printf("\n===================================\n");
     printf("Texto original:   \n%s\n", resultado);
     printf("===================================\n");
